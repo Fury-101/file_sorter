@@ -53,8 +53,21 @@ bool FileIO::write(const QString& data)
 
 bool FileIO::move(const QString& oldpath, const QString& newpath)
 {
-    QDir file(oldpath);
+    QFile file(oldpath);
     file.rename(oldpath, newpath);
 
+    // TODO: throw errors for invalid paths, etc.
     return true;
+}
+
+bool FileIO::isDir(const QString& path) {
+    QFileInfo info(path);
+
+    return info.isDir();
+}
+
+QList<QString> FileIO::dirList(const QString& path) {
+    QDir dir(path);
+
+    return dir.entryList();
 }

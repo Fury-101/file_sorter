@@ -1,8 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+// import QtQuick.Dialogs
 import FileIO 1.0
-// import QStandardPaths
 
 Window {
     id: root
@@ -48,26 +48,38 @@ Window {
                     console.log("got these files: " + drop.urls);
 
                     for (const u of drop.urls) {
+                        if (String(u).slice(0, 8) !== "file:///") {
+                            console.log('invalid dropped thingy - was that a file/folder???')
+                        }
+
                         let fp = String(u).slice(8).replace(/\//g, '\\');
-                        let jdata = rules.getData();
-                        for (const regex in jdata) {
-                            let targetPath = jdata[regex][0];
-                            let enabled = jdata[regex][1];
-                            if (!enabled) {
-                                continue;
-                            }
-                            let re = new RegExp(regex);
-                            let tmp = String(fp).split("\\");
+                        let children = rulesFile.dirList(fp)
+                        let filePaths = [];
+                        if (rulesFile.isDir(fp)) {
+                            filePaths = children.slice(2).map(e => fp + '\\' + e);
+                        } else {
+                            filePaths = [fp];
+                        }
+
+                        for (const fpath of filePaths) {
+                            let tmp = String(fpath).split("\\");
                             let fn = tmp[tmp.length - 1];
-                            console.log(fn);
-                            if (re.test(fn)) {
-                                console.log('attempting to do this file move: ' + fp + " -> " + targetPath + "\\" + fn);
-                                rulesFile.move(fp, targetPath + "\\" + fn);
-                                break;
+
+                            let jdata = rules.getData();
+                            for (const list of jdata) {
+                                let [regex, targetPath, enabled] = list;
+                                if (!enabled) {
+                                    continue;
+                                }
+                                let re = new RegExp(regex);
+                                if (re.test(fn)) {
+                                    console.log('attempting to do this file move: ' + fpath + " -> " + targetPath + "\\" + fn);
+                                    // rulesFile.move(fp, targetPath + "\\" + fn);
+                                    break;
+                                }
                             }
                         }
                     }
-
 
                     dropContainer.color = "white"
                 }
@@ -106,8 +118,11 @@ Window {
             Component.onCompleted: {
                 let data = JSON.parse(rulesFile.read());
 
-                for (const regex in data) {
-                    rulesList.append({"regex": regex, "path": data[regex][0], "boxEnabled": data[regex][1]});
+                for (const list of data) {
+                    let regex = list[0];
+                    let path = list[1];
+                    let enabled = list[2];
+                    rulesList.append({"regex": regex, "path": path, "boxEnabled": enabled});
                 }
             }
         }
@@ -132,6 +147,20 @@ Window {
                 }
             }
         }
+        FileDialog {
+            id: fileDialog
+            title: "Please choose a file"
+            folder: shortcuts.home
+            onAccepted: {
+                console.log("You chose: " + fileDialog.fileUrls)
+                Qt.quit()
+            }
+            onRejected: {
+                console.log("Canceled")
+                Qt.quit()
+            }
+            Component.onCompleted: visible = true
+        }
 
         ColumnLayout {
             id: rulesContainer
@@ -152,10 +181,13 @@ Window {
                 }
 
                 function getData() {
-                    let jdata = {};
+                    let jdata = [];
                     for (const el of rules.contentItem.children) {
                         if (el.children.length !== 4) continue;
-                        jdata[el.children[1].text] = [el.children[3].text, el.children[0].checked];
+                        let regex = el.children[1].text;
+                        let path = el.children[3].text;
+                        let checked = el.children[0].checked;
+                        jdata.push([regex, path, checked]);
                     }
                     return jdata;
                 }
@@ -175,8 +207,8 @@ Window {
                 onClicked: {
                     let jdata = rules.getData();
 
-                    console.log(JSON.stringify(jdata));
                     console.log("saving following data:")
+                    console.log(JSON.stringify(jdata));
                     rulesFile.write(JSON.stringify(jdata));
                 }
             }

@@ -17,6 +17,8 @@ public:
     Q_INVOKABLE QString read();
     Q_INVOKABLE bool write(const QString& data);
     Q_INVOKABLE bool move(const QString& oldpath, const QString& newpath);
+    Q_INVOKABLE bool isDir(const QString& path);
+    Q_INVOKABLE QList<QString> dirList(const QString& path);
 
     QString source() { return mSource; };
 

@@ -33,6 +33,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     std::replace (DesktopLocation.begin(), DesktopLocation.end(), '/', '\\');
     std::string DownloadLocation = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation).toStdString();
     std::replace (DownloadLocation.begin(), DownloadLocation.end(), '/', '\\');
+    engine.rootContext()->setContextProperty("DownloadLocation", QString::fromStdString(DownloadLocation));
     std::string DocumentsLocation = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation).toStdString();
     std::replace (DocumentsLocation.begin(), DocumentsLocation.end(), '/', '\\');
     std::string MusicLocation = QStandardPaths::writableLocation(QStandardPaths::MusicLocation).toStdString();
@@ -44,10 +45,10 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
 
     std::string AppdataLocation = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation).toStdString();
     std::replace (AppdataLocation.begin(), AppdataLocation.end(), '/', '\\');
-    engine.rootContext()->setContextProperty("AppdataLocation", QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
+    engine.rootContext()->setContextProperty("AppdataLocation", QString::fromStdString(AppdataLocation));
 
     std::string DataLocation = AppdataLocation + "\\data.json";
-    engine.rootContext()->setContextProperty("DataLocation", QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + QString("\\data.json"));
+    engine.rootContext()->setContextProperty("DataLocation", QString::fromStdString(DataLocation));
 
     if (!std::filesystem::exists(AppdataLocation)) {
         std::filesystem::create_directory(AppdataLocation);
@@ -55,12 +56,13 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
 
     if (!check_exists(DataLocation)) {
         std::ofstream file(DataLocation);
-        json jsonData = json::object({
-                                      {"\\S+?(?:pdf|epub|doc|docx)", {DocumentsLocation, true}},
-                                      {"\\S+?(?:wav|mp3|flac)", {MusicLocation, true}},
-                                      {"\\S+?(?:mp4|mov|mpeg|m4v|mkv)", {MoviesLocation, true}},
-                                      {"\\S+?(?:jpe?g|png|gif|svg|bmp|tiff|heic|webp|heif|avif)", {PicturesLocation, true}}
-        });
+        json jsonData = {
+            {"\\S+?(?:pdf|epub|doc|docx)", DocumentsLocation, true},
+            {"\\S+?(?:wav|mp3|flac)", MusicLocation, true},
+            {"\\S+?(?:mp4|mov|mpeg|m4v|mkv)", MoviesLocation, true},
+            {"\\S+?(?:jpe?g|png|gif|svg|bmp|tiff|heic|webp|heif|avif)", PicturesLocation, true},
+            {".+", DownloadLocation, true}
+        };
         file << jsonData;
     }
     qDebug() << "data is at: " << DataLocation;
