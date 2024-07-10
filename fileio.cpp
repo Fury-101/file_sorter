@@ -66,6 +66,14 @@ bool FileIO::isDir(const QString& path) {
     return info.isDir();
 }
 
+QString FileIO::toNativeSeparators(const QString& path) {
+    return QDir::toNativeSeparators(path);
+}
+
+QString FileIO::fromNativeSeparators(const QString& path) {
+    return QDir::fromNativeSeparators(path);
+}
+
 QList<QString> FileIO::dirList(const QString& path) {
     QDir dir(path);
 

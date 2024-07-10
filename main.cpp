@@ -1,6 +1,7 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QStandardPaths>
+#include <QString>
 #include <QQmlContext>
 #include <json.hpp>
 #include <sys/stat.h>
@@ -8,6 +9,7 @@
 #include <algorithm>
 #include <filesystem>
 #include "fileio.h"
+// #include <QLibraryInfo>
 
 using json = nlohmann::json;
 
@@ -29,25 +31,20 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
         []() { QCoreApplication::exit(-1); },
         Qt::QueuedConnection);
 
-    std::string DesktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation).toStdString();
-    std::replace (DesktopLocation.begin(), DesktopLocation.end(), '/', '\\');
-    std::string DownloadLocation = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation).toStdString();
-    std::replace (DownloadLocation.begin(), DownloadLocation.end(), '/', '\\');
-    engine.rootContext()->setContextProperty("DownloadLocation", QString::fromStdString(DownloadLocation));
-    std::string DocumentsLocation = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation).toStdString();
-    std::replace (DocumentsLocation.begin(), DocumentsLocation.end(), '/', '\\');
-    std::string MusicLocation = QStandardPaths::writableLocation(QStandardPaths::MusicLocation).toStdString();
-    std::replace (MusicLocation.begin(), MusicLocation.end(), '/', '\\');
-    std::string MoviesLocation = QStandardPaths::writableLocation(QStandardPaths::MoviesLocation).toStdString();
-    std::replace (MoviesLocation.begin(), MoviesLocation.end(), '/', '\\');
-    std::string PicturesLocation = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation).toStdString();
-    std::replace (PicturesLocation.begin(), PicturesLocation.end(), '/', '\\');
+    std::string sep = FileIO::toNativeSeparators("/").toStdString();
 
-    std::string AppdataLocation = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation).toStdString();
-    std::replace (AppdataLocation.begin(), AppdataLocation.end(), '/', '\\');
+    std::string DesktopLocation = FileIO::toNativeSeparators(QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)).toStdString();
+    std::string DownloadLocation = FileIO::toNativeSeparators(QStandardPaths::writableLocation(QStandardPaths::DownloadLocation)).toStdString();
+    engine.rootContext()->setContextProperty("DownloadLocation", QString::fromStdString(DownloadLocation));
+    std::string DocumentsLocation = FileIO::toNativeSeparators(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toStdString();
+    std::string MusicLocation = FileIO::toNativeSeparators(QStandardPaths::writableLocation(QStandardPaths::MusicLocation)).toStdString();
+    std::string MoviesLocation = FileIO::toNativeSeparators(QStandardPaths::writableLocation(QStandardPaths::MoviesLocation)).toStdString();
+    std::string PicturesLocation = FileIO::toNativeSeparators(QStandardPaths::writableLocation(QStandardPaths::PicturesLocation)).toStdString();
+
+    std::string AppdataLocation = FileIO::toNativeSeparators(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)).toStdString();
     engine.rootContext()->setContextProperty("AppdataLocation", QString::fromStdString(AppdataLocation));
 
-    std::string DataLocation = AppdataLocation + "\\data.json";
+    std::string DataLocation = AppdataLocation + sep + "data.json";
     engine.rootContext()->setContextProperty("DataLocation", QString::fromStdString(DataLocation));
 
     if (!std::filesystem::exists(AppdataLocation)) {
@@ -65,11 +62,20 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
         };
         file << jsonData;
     }
+    std::string RecursiveLocation = AppdataLocation + sep + "rec.json";
+    engine.rootContext()->setContextProperty("RecursiveLocation", QString::fromStdString(RecursiveLocation));
+
+    if (!check_exists(RecursiveLocation)) {
+        std::ofstream file(RecursiveLocation);
+        json rec = false;
+        file << rec;
+    }
+
     qDebug() << "data is at: " << DataLocation;
-    qDebug() << "program knows data exists? - " << check_exists(DataLocation);
+    qDebug() << "recursive at: " << RecursiveLocation;
 
     qmlRegisterType<FileIO, 1>("FileIO", 1, 0, "FileIO");
-
+    // qDebug() << QLibraryInfo::path(QLibraryInfo::QmlImportsPath);
     engine.load(url);
 
     return app.exec();
