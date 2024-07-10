@@ -207,14 +207,14 @@ Window {
                     }
                     FolderDialog {
                         id: fDialog
-                        title: "Please choose a file"
+                        title: "Please choose a file/folder"
                         currentFolder: DownloadLocation
                         onAccepted: {
                             let fpath = String(this.currentFolder)
-                            fpath = fpath.replace(/^(file:\/{3})/,"");
+                            fpath = rulesFile.toNativeSeparators(fpath.replace(/^(file:\/{3})/,""));
                             console.log(rulePath.text)
                             console.log('setting path to: ' + fpath + ' - previously ' + rulePath.text);
-                            parent.text = fpath;
+                            rulePath.text = fpath;
                         }
                     }
                 }
